@@ -3,7 +3,7 @@ import re
 from pkg_resources import get_distribution, DistributionNotFound
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.MD", "r") as fh:
     long_description = fh.read()
 
 # Take from https://github.com/aleju/imgaug
