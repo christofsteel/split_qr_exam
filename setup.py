@@ -50,7 +50,7 @@ INSTALL_REQUIRES = get_install_requirements(INSTALL_REQUIRES, ALT_INSTALL_REQUIR
 
 setuptools.setup(
     name="split_qr_exam",
-    version="0.1.1",
+    version="0.1.2",
     author="Christoph Stahl",
     author_email="christoph.stahl@tu-dortmund.de",
     description="Splits a pdf consisting of multiple exams identified by a QR code on the cover page",
