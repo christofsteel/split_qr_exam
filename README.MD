@@ -16,11 +16,21 @@ Install
 
 The program can be installed using pip
 
+To get the latest release from PyPI
+
 ```
 pip install split_qr_exam
 ```
 
-This will also install all needed requirements, namely `pymupdf` and `python-opencv2-headless`.
+To get the latest development snapshot
+
+```
+git clone https://github.com/christofsteel/split_qr_exam.git
+cd split_qr_exam
+pip install .
+```
+
+Both will also install all needed requirements, namely `pymupdf` and `python-opencv2-headless`. **Note:** This will install the command `split_qr_exam` system wide. If you only want to install it as the current user, you should add `--user` to the `pip install` commands.
 
 Usage
 =====
