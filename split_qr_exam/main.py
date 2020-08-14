@@ -21,6 +21,7 @@ import logging
 import math
 import argparse
 import hashlib
+import uuid
 
 import numpy as np
 
@@ -285,7 +286,7 @@ class QRKlausurProcessor:
         qr_scanner: An instance of `QRScanner`
     """
 
-    def __init__(self, filename, destpath, parts, qr_scanner):
+    def __init__(self, filename, destpath, parts, hashing, qr_scanner):
         """Initializes the object.
 
         Opens the file `filename` as a pymupdf-object. If the number of pages in the input document
@@ -304,6 +305,7 @@ class QRKlausurProcessor:
         self.qr_scanner = qr_scanner
         self.pdf_file = fitz.open(filename)
         self.destpath = destpath
+        self.hashing = hashing
         self._offset = 0
         self._old_string = None
 
@@ -363,18 +365,28 @@ class QRKlausurProcessor:
             student_id = self.qr_scanner.get_qr_string(image)
             self._old_string = student_id
             print(f"Exam number {examnr}, studentid: {student_id}")
+            if student_id == "":
+                logging.warning("Empty QR String detected!")
+                student_id = uuid.uuid4()
             #student_path = os.path.join(self.destpath, student_id)
             for part_name, part_start, part_end in self.parts:
                 part_folder = os.path.join(self.destpath, part_name)
-                hash_id = hashlib.sha256(bytes(student_id, encoding='utf8')).hexdigest()
+                if self.hashing:
+                    hash_id = hashlib.sha256(bytes(student_id, encoding='utf8')).hexdigest()
+                else:
+                    hash_id = student_id
                 os.makedirs(part_folder, exist_ok=True)
                 part_path = os.path.join(part_folder, f"{hash_id}_{part_name}.pdf")
-                print(f"{part_path} - {part_start}:{part_end}")
 
                 part_pdf = fitz.open()
                 part_pdf.insertPDF(self.pdf_file
                                    , from_page=first_page + part_start
                                    , to_page=first_page + part_end)
+                if os.path.exists(part_path):
+                    uuid_name = uuid.uuid4()
+                    logging.warning(f"File {hash_id}_{part_name}.pdf already exists, saving as {hash_id}_{part_name}_{uuid_name}.pdf")
+                    part_path = os.path.join(part_folder, f"{hash_id}_{part_name}_{uuid_name}.pdf")
+                print(f"{part_path} - {part_start}:{part_end}")
                 part_pdf.save(part_path)
             return True
 
@@ -446,11 +458,11 @@ def parse_cropping(crop_string, no_crop):
     start_y, end_y = coord_y.split(",")
     return ((float(start_x), float(end_x)), (float(start_y), float(end_y)))
 
-def run(filename, destpath, parts, config):
+def run(filename, destpath, parts, hashing, config):
     """The main function. Given all neccessary parameters, processes every exam in the pdf"""
 
     qr_scanner = QRScanner(**config)
-    qr_klausur_processor = QRKlausurProcessor(filename, destpath, parts, qr_scanner)
+    qr_klausur_processor = QRKlausurProcessor(filename, destpath, parts, hashing, qr_scanner)
     qr_klausur_processor.process_exams()
 
 def main():
@@ -483,6 +495,7 @@ def main():
     parser.add_argument("-T", "--no-cleanup", action="store_true", help="Skip cleanup phase")
     parser.add_argument("-S", "--no-shrink", action="store_true", help="Skip shrinking phase")
     parser.add_argument("-C", "--no-crop", action="store_true", help="Skip cropping phase")
+    parser.add_argument("-H", "--hash", action="store_true", help="Hash the resulting filename")
     parser.add_argument("-p", "--part", required=True, action="append",
                         help="Name and amount of pages for the parts of the exam, seperated by "
                              "a colon. Can (and should) be issued multiple times (Example \"-p "
@@ -513,7 +526,7 @@ def main():
               "threshold": args.threshold}
 
 
-    run(args.pdf, args.dest, args_parts, config)
+    run(args.pdf, args.dest, args_parts, args.hash, config)
 
 if __name__ == "__main__":
     main()
